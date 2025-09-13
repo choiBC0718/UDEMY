@@ -18,6 +18,8 @@ public:
 
 	void ServerSideInit();
 	void ClientSideInit();
+	bool IsLocallyControlledByPlayer();
+	virtual void PossessedBy(AController* NewController) override;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -42,5 +44,22 @@ private:
 
 	UPROPERTY()
 	class UCAttributeSet* CAttributeSet;
+	/*********************************************************************************************/
+
+	/*********************************************************************************************/
+	/*                                     UI                                                    */
+private:
+	void ConfiugreOverHeadStatusWidget();
+	void UpdateHeadGaugeVisibility();
+	
+	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
+	class UWidgetComponent* OverHeadWidgetComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	float HeadGaugeVisibilityCheckUpdateGap = 1.f;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	float HeadGaugeVisibilityRangeSquared = 1000000.f;
+	
+	FTimerHandle HeadGaugeVisibilityTimerHandle;
 	/*********************************************************************************************/
 };
