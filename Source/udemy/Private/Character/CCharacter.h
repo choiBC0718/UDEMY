@@ -4,11 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
+#include "GenericTeamAgentInterface.h"
 #include "CCharacter.generated.h"
 
+struct FGameplayTag;
+
 UCLASS()
-class ACCharacter : public ACharacter, public IAbilitySystemInterface
+class ACCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -35,22 +39,29 @@ public:
 	
 	/*********************************************************************************************/
 	/*                                     Gameplay Ability                                      */
+	/*********************************************************************************************/
+	
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
 private:
+	void BindGASChangeDelegates();
+	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UCAbilitySystemComponent* CAbilitySystemComponent;
 
 	UPROPERTY()
 	class UCAttributeSet* CAttributeSet;
-	/*********************************************************************************************/
 
 	/*********************************************************************************************/
 	/*                                     UI                                                    */
+	/*********************************************************************************************/
+	
 private:
 	void ConfiugreOverHeadStatusWidget();
 	void UpdateHeadGaugeVisibility();
+	void SetStatusGaugeEnabled(bool bIsEnabled);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	class UWidgetComponent* OverHeadWidgetComponent;
@@ -61,5 +72,44 @@ private:
 	float HeadGaugeVisibilityRangeSquared = 1000000.f;
 	
 	FTimerHandle HeadGaugeVisibilityTimerHandle;
+
+	
 	/*********************************************************************************************/
+	/*                                    Death & Respawn                                        */
+	/*********************************************************************************************/
+	FTransform MeshRelativeTransform;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	float DeathMontageFinishTimeShift = -0.8f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	UAnimMontage* DeathMontage;
+
+	FTimerHandle DeathMontageTimerHandle;
+
+	void DeathMontageFinished();
+	void SetRagdollEnabled(bool bIsEnabled);
+	
+	void PlayDeathAnimation();
+	
+	void StartDeathSequence();
+	void Respawn();
+
+	virtual void OnDead();
+	virtual void OnRespawn();
+
+
+
+	/*********************************************************************************************/
+	/*                                       Team Respawn                                        */
+	/*********************************************************************************************/
+public:
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+	
+	
+private:
+	UPROPERTY(Replicated)
+	FGenericTeamId TeamID;
 };
