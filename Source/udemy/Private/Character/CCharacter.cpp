@@ -4,8 +4,12 @@
 #include "Character/CCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/CAbilitySystemComponent.h"
 #include "GAS/CAttributeSet.h"
+#include "GAS/UCAbilitySystemStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/OverHeadValueGauge.h"
 
@@ -24,6 +28,8 @@ ACCharacter::ACCharacter()
 
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent -> SetupAttachment(GetRootComponent());
+
+	BindGASChangeDelegates();
 }
 
 // 서버 & 클라이언트 측 초기화 함수 구현
@@ -31,6 +37,7 @@ void ACCharacter::ServerSideInit()
 {
 	CAbilitySystemComponent -> InitAbilityActorInfo(this, this);
 	CAbilitySystemComponent -> ApplyInitialEffects();
+	CAbilitySystemComponent -> GiveInitialAbility();
 }
 void ACCharacter::ClientSideInit()
 {
@@ -58,6 +65,7 @@ void ACCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	ConfiugreOverHeadStatusWidget();
+	MeshRelativeTransform = GetMesh() -> GetRelativeTransform();
 }
 
 // Called every frame
@@ -75,6 +83,25 @@ void ACCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 UAbilitySystemComponent* ACCharacter::GetAbilitySystemComponent() const
 {
 	return CAbilitySystemComponent;
+}
+
+void ACCharacter::BindGASChangeDelegates()
+{
+	if (CAbilitySystemComponent)
+	{
+		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &ACCharacter::DeathTagUpdated);
+	}
+}
+
+void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	if (NewCount != 0)
+	{
+		StartDeathSequence();
+	}else
+	{
+		Respawn();
+	}
 }
 
 void ACCharacter::ConfiugreOverHeadStatusWidget()
@@ -107,5 +134,105 @@ void ACCharacter::UpdateHeadGaugeVisibility()
 		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());
 		OverHeadWidgetComponent -> SetHiddenInGame(DistSquared > HeadGaugeVisibilityRangeSquared);
 	}
+}
+
+void ACCharacter::SetStatusGaugeEnabled(bool bIsEnabled)
+{
+	GetWorldTimerManager().ClearTimer(HeadGaugeVisibilityTimerHandle);
+	if (bIsEnabled)
+	{
+		ConfiugreOverHeadStatusWidget();
+	}else
+	{
+		OverHeadWidgetComponent -> SetHiddenInGame(true);
+	}
+}
+
+void ACCharacter::DeathMontageFinished()
+{
+	SetRagdollEnabled(true);
+}
+
+void ACCharacter::SetRagdollEnabled(bool bIsEnabled)
+{
+	if (bIsEnabled)
+	{
+		GetMesh() -> DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		GetMesh() -> SetSimulatePhysics(true);
+		GetMesh() -> SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	}else
+	{
+		GetMesh() -> SetSimulatePhysics(false);
+		GetMesh() -> SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMesh() -> AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		GetMesh() -> SetRelativeTransform(MeshRelativeTransform);
+	}
+}
+
+void ACCharacter::PlayDeathAnimation()
+{
+	if (DeathMontage)
+	{
+		float MontageDuration = PlayAnimMontage(DeathMontage);
+		GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &ACCharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimeShift);
+	}
+}
+
+void ACCharacter::StartDeathSequence()
+{
+	OnDead();
+	PlayDeathAnimation();
+	SetStatusGaugeEnabled(false);
+	
+	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_None);
+	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ACCharacter::Respawn()
+{
+	OnRespawn();
+	SetRagdollEnabled(false);
+	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_Walking);
+	GetMesh() -> GetAnimInstance() -> StopAllMontages(0.f);
+	SetStatusGaugeEnabled(true);
+
+	if (HasAuthority() && GetController())
+	{
+		TWeakObjectPtr<AActor> StartSpot = GetController() -> StartSpot;
+		if (StartSpot.IsValid())
+		{
+			SetActorTransform(StartSpot -> GetActorTransform());
+		}
+	}
+	
+	if (CAbilitySystemComponent)
+	{
+		CAbilitySystemComponent -> ApplyFullStatEffect();
+	}
+}
+
+void ACCharacter::OnDead()
+{
+}
+
+void ACCharacter::OnRespawn()
+{
+}
+
+void ACCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamID = NewTeamID;
+}
+
+FGenericTeamId ACCharacter::GetGenericTeamId() const
+{
+	return TeamID;
+}
+
+void ACCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ACCharacter, TeamID);
 }
 
