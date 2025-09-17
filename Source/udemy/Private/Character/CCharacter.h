@@ -77,6 +77,10 @@ private:
 	/*********************************************************************************************/
 	/*                                    Death & Respawn                                        */
 	/*********************************************************************************************/
+public:
+	bool IsDead() const;
+	void RespawnImmediately();
+private:
 	FTransform MeshRelativeTransform;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
@@ -105,11 +109,25 @@ private:
 	/*********************************************************************************************/
 public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
-	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual FGenericTeamId GetGenericTeamId() const override;			//호출 시 서버에서만 작동, ID값은 복제 X -> 클라이언트의 ID를 가져오는것도 X
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	
 private:
-	UPROPERTY(Replicated)
+	//캐릭터 기반의 TeamID값 -> 미니언과 독립적임 (기존 Replicated -> 변경 ReplicatedUsing = OnRep_TeamID) --> 함수 생성
+	UPROPERTY(ReplicatedUsing = OnRep_TeamID)
 	FGenericTeamId TeamID;
+	
+	UFUNCTION()
+	virtual void OnRep_TeamID();		//minion 파일에서 override
+	
+	/*********************************************************************************************/
+	/*												AI	                                         */
+	/*********************************************************************************************/
+
+private:
+	void SetAIPERceptionStimuliSourceEnabled(bool bIsEnabled);					//AIPerception 인식기능 활성/비활성 함수
+	
+	UPROPERTY()
+	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
 };

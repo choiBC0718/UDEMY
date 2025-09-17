@@ -12,6 +12,9 @@
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/OverHeadValueGauge.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 
 // Sets default values
 ACCharacter::ACCharacter()
@@ -30,6 +33,9 @@ ACCharacter::ACCharacter()
 	OverHeadWidgetComponent -> SetupAttachment(GetRootComponent());
 
 	BindGASChangeDelegates();
+
+	// Stimuli Source를 통해 플레이어 감지 가능
+	PerceptionStimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception StimuliSource Component");
 }
 
 // 서버 & 클라이언트 측 초기화 함수 구현
@@ -66,6 +72,8 @@ void ACCharacter::BeginPlay()
 	Super::BeginPlay();
 	ConfiugreOverHeadStatusWidget();
 	MeshRelativeTransform = GetMesh() -> GetRelativeTransform();
+
+	PerceptionStimuliSourceComponent -> RegisterForSense(UAISense_Sight::StaticClass());			//감각 (sight, sound ..) 등록
 }
 
 // Called every frame
@@ -148,9 +156,21 @@ void ACCharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	}
 }
 
+bool ACCharacter::IsDead() const
+{	//태그가 있다면 죽음 처리
+	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag());
+}
+
+void ACCharacter::RespawnImmediately()
+{
+	if (HasAuthority())
+		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UCAbilitySystemStatics::GetDeadStatTag()));
+}
+
 void ACCharacter::DeathMontageFinished()
 {
-	SetRagdollEnabled(true);
+	if (IsDead())
+		SetRagdollEnabled(true);
 }
 
 void ACCharacter::SetRagdollEnabled(bool bIsEnabled)
@@ -181,17 +201,24 @@ void ACCharacter::PlayDeathAnimation()
 void ACCharacter::StartDeathSequence()
 {
 	OnDead();
+	
+	if (CAbilitySystemComponent){
+		CAbilitySystemComponent -> CancelAllAbilities();		//죽으면 즉시 모든 능력 취소
+	}
 	PlayDeathAnimation();
 	SetStatusGaugeEnabled(false);
 	
 	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_None);
 	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	SetAIPERceptionStimuliSourceEnabled(false);		// AI타겟 잃음 But. 아직 5초동안은 잡고있음
 }
 
 void ACCharacter::Respawn()
 {
 	OnRespawn();
 	SetRagdollEnabled(false);
+	SetAIPERceptionStimuliSourceEnabled(true);		//플레이어 리스폰시 재활성	
 	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_Walking);
 	GetMesh() -> GetAnimInstance() -> StopAllMontages(0.f);
@@ -234,5 +261,25 @@ void ACCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ACCharacter, TeamID);
+}
+
+void ACCharacter::OnRep_TeamID()
+{
+	//override in child class
+}
+
+void ACCharacter::SetAIPERceptionStimuliSourceEnabled(bool bIsEnabled)
+{
+	if (!PerceptionStimuliSourceComponent)
+		return;
+
+	if (bIsEnabled)
+	{
+		PerceptionStimuliSourceComponent -> RegisterWithPerceptionSystem();		//true : 기능 등록
+	}
+	else
+	{
+		PerceptionStimuliSourceComponent -> UnregisterFromPerceptionSystem();	//false : 기능 해제
+	}
 }
 
