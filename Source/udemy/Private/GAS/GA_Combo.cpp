@@ -58,7 +58,6 @@ FGameplayTag UGA_Combo::GetComboChangedEventTag()
 FGameplayTag UGA_Combo::GetComboChangedEventEndTag()
 {
 	return FGameplayTag::RequestGameplayTag("ability.combo.change.end");
-	
 }
 
 FGameplayTag UGA_Combo::GetComboTargetEventTag()
@@ -112,16 +111,11 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 	if (EventTag == GetComboChangedEventEndTag())
 	{
 		NextComboName = NAME_None;
-	UE_LOG(LogTemp, Warning, TEXT("next combo is cleared"));
-		
 		return;
 	}
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
 	NextComboName = TagNames.Last();
-
-	UE_LOG(LogTemp, Warning, TEXT("next combo is now: %s"), *NextComboName.ToString());
-	
 }
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
@@ -139,6 +133,5 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		EffectSpecHandle.Data -> SetContext(EffectContext);
 		
 		ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
-				
 	}
 }

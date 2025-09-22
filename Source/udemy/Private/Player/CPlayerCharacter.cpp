@@ -2,6 +2,8 @@
 
 
 #include "Player/CPlayerCharacter.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -9,6 +11,7 @@
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubSystems.h"
 #include "EnhancedInputComponent.h"
+#include "GAS/UCAbilitySystemStatics.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
 {
@@ -89,26 +92,48 @@ void ACPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionV
 	else
 	{
 		GetAbilitySystemComponent() -> AbilityLocalInputReleased((int32)InputID);
-				
+	}
+
+	if (InputID == ECAbilityInputID::BasicAttack)
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UCAbilitySystemStatics::GetBasicAttackInputPressedTag() , FGameplayEventData());
+		Server_SendGameplayEventToSelf(UCAbilitySystemStatics::GetBasicAttackInputPressedTag(), FGameplayEventData());
 	}
 }
 
-void ACPlayerCharacter::OnDead()
+void ACPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 {
 	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
+	if (!PlayerController)	return;
+
+	if (bEnabled)
+	{
+		EnableInput(PlayerController);
+	}else
 	{
 		DisableInput(PlayerController);
 	}
 }
 
+void ACPlayerCharacter::OnStun()
+{
+	SetInputEnabledFromPlayerController(false);
+}
+
+void ACPlayerCharacter::OnRecoverFromStun()
+{
+	if (IsDead()) return;
+	SetInputEnabledFromPlayerController(true);
+}
+
+void ACPlayerCharacter::OnDead()
+{
+	SetInputEnabledFromPlayerController(false);
+}
+
 void ACPlayerCharacter::OnRespawn()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
-	{
-		EnableInput(PlayerController);
-	}
+	SetInputEnabledFromPlayerController(true);
 }
 
 FVector ACPlayerCharacter::GetLookRightDir() const

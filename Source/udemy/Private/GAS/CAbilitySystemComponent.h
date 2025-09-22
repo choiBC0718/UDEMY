@@ -10,7 +10,7 @@
 
 /**
  * 
- */
+*/
 UCLASS()
 class UCAbilitySystemComponent : public UAbilitySystemComponent
 {
@@ -21,6 +21,8 @@ public:
 	void ApplyInitialEffects();
 	void GiveInitialAbility();
 	void ApplyFullStatEffect();
+	const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	
 private:
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);

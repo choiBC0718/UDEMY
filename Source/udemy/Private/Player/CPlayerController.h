@@ -17,9 +17,9 @@ class ACPlayerController : public APlayerController, public IGenericTeamAgentInt
 
 public:
 	// 서버에서 측에서만 호출
-	void OnPossess(APawn* NewPawn) override;
+	virtual void OnPossess(APawn* NewPawn) override;
 	// 클라이언트 측에서만 호출
-	void AcknowledgePossession(APawn* NewPawn) override;
+	virtual void AcknowledgePossession(APawn* NewPawn) override;
 
 
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;

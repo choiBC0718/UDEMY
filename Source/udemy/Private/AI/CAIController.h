@@ -48,4 +48,7 @@ private:
 	void ClearAndDisalbeAllSenses();		//죽으면 센서 비활성
 	void EnableAllSenses();					//센서 재활성화
 	void PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count);
+	void PawnStunTagUpdated(const FGameplayTag Tag, int32 Count);
+
+	bool bIsPawnDead = false;
 };

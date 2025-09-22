@@ -7,9 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "GAS/CGameplayAbilityTypes.h"
 #include "CCharacter.generated.h"
-
-struct FGameplayTag;
 
 UCLASS()
 class ACCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
@@ -24,6 +23,7 @@ public:
 	void ClientSideInit();
 	bool IsLocallyControlledByPlayer();
 	virtual void PossessedBy(AController* NewController) override;
+	const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -43,10 +43,13 @@ public:
 	
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UCAbilitySystemComponent* CAbilitySystemComponent;
@@ -73,6 +76,15 @@ private:
 	
 	FTimerHandle HeadGaugeVisibilityTimerHandle;
 
+
+	/*********************************************************************************************/
+	/*											Stun				                             */
+	/*********************************************************************************************/
+	UPROPERTY(EditDefaultsOnly, Category = "Stun")
+	UAnimMontage* StunMontage;
+
+	virtual void OnStun();
+	virtual void OnRecoverFromStun();
 	
 	/*********************************************************************************************/
 	/*                                    Death & Respawn                                        */

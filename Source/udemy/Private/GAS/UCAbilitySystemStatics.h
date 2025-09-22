@@ -7,6 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "UCAbilitySystemStatics.generated.h"
 
+class UGameplayAbility;
 /**
  * 
  */
@@ -17,4 +18,9 @@ class UCAbilitySystemStatics : public UBlueprintFunctionLibrary
 public:
 	static FGameplayTag GetBasicAttackAbilityTag();
 	static FGameplayTag GetDeadStatTag();
+	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetBasicAttackInputPressedTag();
+
+	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
+	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
 };

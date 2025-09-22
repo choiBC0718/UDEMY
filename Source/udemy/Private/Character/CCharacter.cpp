@@ -2,6 +2,8 @@
 
 
 #include "Character/CCharacter.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -65,6 +67,11 @@ void ACCharacter::PossessedBy(AController* NewController)
 	}
 }
 
+const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& ACCharacter::GetAbilities() const
+{
+	return CAbilitySystemComponent -> GetAbilities();
+}
+
 
 // Called when the game starts or when spawned
 void ACCharacter::BeginPlay()
@@ -93,11 +100,24 @@ UAbilitySystemComponent* ACCharacter::GetAbilitySystemComponent() const
 	return CAbilitySystemComponent;
 }
 
+void ACCharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
+}
+
+bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	return true;
+}
+
 void ACCharacter::BindGASChangeDelegates()
 {
 	if (CAbilitySystemComponent)
 	{
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &ACCharacter::DeathTagUpdated);
+		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &ACCharacter::StunTagUpdated);
 	}
 }
 
@@ -109,6 +129,21 @@ void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	}else
 	{
 		Respawn();
+	}
+}
+
+void ACCharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	if (IsDead()) return;
+	if (NewCount != 0)
+	{
+		OnStun();
+		PlayAnimMontage(StunMontage);
+	}
+	else
+	{
+		OnRecoverFromStun();
+		StopAnimMontage(StunMontage);
 	}
 }
 
@@ -156,6 +191,14 @@ void ACCharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	}
 }
 
+void ACCharacter::OnStun()
+{
+}
+
+void ACCharacter::OnRecoverFromStun()
+{
+}
+
 bool ACCharacter::IsDead() const
 {	//태그가 있다면 죽음 처리
 	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag());
@@ -165,6 +208,7 @@ void ACCharacter::RespawnImmediately()
 {
 	if (HasAuthority())
 		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UCAbilitySystemStatics::GetDeadStatTag()));
+		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UCAbilitySystemStatics::GetStunStatTag()));
 }
 
 void ACCharacter::DeathMontageFinished()
@@ -208,7 +252,7 @@ void ACCharacter::StartDeathSequence()
 	PlayDeathAnimation();
 	SetStatusGaugeEnabled(false);
 	
-	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_None);
+	//GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_None);
 	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SetAIPERceptionStimuliSourceEnabled(false);		// AI타겟 잃음 But. 아직 5초동안은 잡고있음
@@ -220,7 +264,7 @@ void ACCharacter::Respawn()
 	SetRagdollEnabled(false);
 	SetAIPERceptionStimuliSourceEnabled(true);		//플레이어 리스폰시 재활성	
 	GetCapsuleComponent() -> SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_Walking);
+	//GetCharacterMovement() -> SetMovementMode(EMovementMode::MOVE_Walking);
 	GetMesh() -> GetAnimInstance() -> StopAllMontages(0.f);
 	SetStatusGaugeEnabled(true);
 

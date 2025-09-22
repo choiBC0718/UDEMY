@@ -28,7 +28,6 @@ void ACPlayerController::AcknowledgePossession(APawn* NewPawn)
 		CPlayerCharacter -> ClientSideInit();
 		SpawnGameplayWidget();
 	}
-
 }
 
 void ACPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
@@ -56,5 +55,6 @@ void ACPlayerController::SpawnGameplayWidget()
 	if (GameplayWidget)
 	{
 		GameplayWidget->AddToViewport();
+		GameplayWidget->ConfigureAbilities(CPlayerCharacter->GetAbilities());
 	}
 }
