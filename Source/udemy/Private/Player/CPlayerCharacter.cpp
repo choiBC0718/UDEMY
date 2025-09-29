@@ -12,6 +12,7 @@
 #include "EnhancedInputSubSystems.h"
 #include "EnhancedInputComponent.h"
 #include "GAS/UCAbilitySystemStatics.h"
+#include "udemy/udemy.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
 {
@@ -20,6 +21,8 @@ ACPlayerCharacter::ACPlayerCharacter()
 	CameraBoom->SetupAttachment(GetRootComponent());
 	//카메라 팔 위아래로 움직일수 있도록
 	CameraBoom -> bUsePawnControlRotation = true;
+	//카메라 붐 (카메라 - 플레이어 연결)은 SpringArm 채널을 트레이싱
+	CameraBoom -> ProbeChannel = ECC_SpringArm;
 	
 	//카메라를 카메라 팔 끝에 부착
 	ViewCam = CreateDefaultSubobject<UCameraComponent>("View Cam");
@@ -136,6 +139,7 @@ void ACPlayerCharacter::OnRespawn()
 	SetInputEnabledFromPlayerController(true);
 }
 
+
 FVector ACPlayerCharacter::GetLookRightDir() const
 {
 	return ViewCam->GetRightVector();
@@ -149,4 +153,31 @@ FVector ACPlayerCharacter::GetLookFwdDir() const
 FVector ACPlayerCharacter::GetMoveFwdDir() const
 {
 	return FVector::CrossProduct(GetLookRightDir(), FVector::UpVector);
+}
+
+/***	Camera	 ***/
+void ACPlayerCharacter::OnAimStateChanged(bool bIsAimming)
+{
+	LerpCameraToLocalOffsetLocation(bIsAimming ?  CameraAimLocalOffset : FVector{0.f});
+}
+
+void ACPlayerCharacter::LerpCameraToLocalOffsetLocation(const FVector& Goal)
+{
+	GetWorldTimerManager().ClearTimer(CameraLerpTimerHandle);
+	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
+}
+
+void ACPlayerCharacter::TickCameraLocalOffsetLerp(FVector Goal)
+{
+	FVector CurrentLocalOffset = ViewCam -> GetRelativeLocation();
+	if (FVector::Dist(CurrentLocalOffset, Goal) < 1.f)
+	{
+		ViewCam->SetRelativeLocation(Goal);
+		return;
+	}
+	float LerpAlpha = FMath::Clamp(GetWorld() -> GetDeltaSeconds() * CameraLerpSpeed, 0.f, 1.f);
+	FVector NewLocalOffset = FMath::Lerp(CurrentLocalOffset, Goal, LerpAlpha);
+	ViewCam->SetRelativeLocation(NewLocalOffset);
+	
+	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
 }

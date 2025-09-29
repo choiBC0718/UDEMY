@@ -2,7 +2,7 @@
 
 
 #include "Character/CCharacter.h"
-
+#include "udemy/udemy.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -26,6 +26,9 @@ ACCharacter::ACCharacter()
 
 	//메시는 충돌 X (오직 캡슐 충돌만 일어나도록)
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//캡슐 컴포넌트에 의한 카메라 이동현상 무시 -> 캡슐 컴포넌트 디테일탭에 추가됨 (Target, SpringArm)
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_SpringArm,ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Target,ECR_Ignore);
 
 	// 서브 오브젝트 생성
 	CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
@@ -118,6 +121,7 @@ void ACCharacter::BindGASChangeDelegates()
 	{
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &ACCharacter::DeathTagUpdated);
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &ACCharacter::StunTagUpdated);
+		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetAimStatTag()).AddUObject(this, &ACCharacter::AimTagUpdated);
 	}
 }
 
@@ -145,6 +149,24 @@ void ACCharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 		OnRecoverFromStun();
 		StopAnimMontage(StunMontage);
 	}
+}
+
+void ACCharacter::AimTagUpdated(const FGameplayTag GameplayTag, int32 NewCount)
+{
+	SetIsAimming(NewCount != 0);
+}
+
+void ACCharacter::SetIsAimming(bool bIsAimming)
+{
+	// 타게팅 모드가 됐을 때 -> PlayerCharacter의 bUseControllerRotationYaw ==> true
+	bUseControllerRotationYaw = bIsAimming;
+	GetCharacterMovement()->bOrientRotationToMovement = !bIsAimming;
+	OnAimStateChanged(bIsAimming);
+}
+
+void ACCharacter::OnAimStateChanged(bool bIsAimming)
+{
+	//override in child class
 }
 
 void ACCharacter::ConfiugreOverHeadStatusWidget()

@@ -68,4 +68,20 @@ private:
 	/*******************************************************************/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
+
+	/*******************************************************************/
+	/*							  Camera			                   */
+	/*******************************************************************/
+private:
+	virtual void OnAimStateChanged(bool bIsAimming) override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "View")
+	FVector CameraAimLocalOffset;
+
+	UPROPERTY(EditDefaultsOnly, Category = "View")
+	float CameraLerpSpeed = 20.f;
+
+	FTimerHandle CameraLerpTimerHandle;
+	void LerpCameraToLocalOffsetLocation(const FVector& Goal);
+	void TickCameraLocalOffsetLerp(FVector Goal);
 };

@@ -20,6 +20,11 @@ FGameplayTag UCAbilitySystemStatics::GetStunStatTag()
 	return FGameplayTag::RequestGameplayTag("stats.stun");
 }
 
+FGameplayTag UCAbilitySystemStatics::GetAimStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("stats.aim");
+}
+
 FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputPressedTag()
 {
 	return FGameplayTag::RequestGameplayTag("ability.basicattack.pressed");

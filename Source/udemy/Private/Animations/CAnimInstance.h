@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GameplayTagContainer.h"
 #include "CAnimInstance.generated.h"
 
 /**
@@ -52,7 +53,21 @@ public:
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	FORCEINLINE float GetLookPitchOffset() const {return LookRotOffset.Pitch;}
 
+	//Aiming Getter
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE bool GetIsAiming() const {return bIsAiming;}
+
+	//앞, 오른쪽 이동 속도 getter -> aim_locomotion의 입력값
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE float GetFwdSpeed() const {return FwdSpeed;}
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE float GetRightSpeed() const {return RightSpeed;}
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	bool ShouldDoFullBody() const;
+
 private:
+	void OwnerAimTagChanged(const FGameplayTag Tag, int32 NewCount);
 	UPROPERTY()
 	class ACharacter* OwnerCharacter;
 
@@ -62,7 +77,10 @@ private:
 	float Speed;
 	float YawSpeed;
 	float SmoothedYawSpeed;
+	float FwdSpeed;
+	float RightSpeed;
 	bool bIsJumping;
+	bool bIsAiming;
 	
 	UPROPERTY(EditAnywhere, Category="Animation")
 	float YawSpeedSmoothLerpSpeed = 1.f;
