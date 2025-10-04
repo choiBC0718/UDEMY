@@ -2,8 +2,8 @@
 
 
 #include "GAS/CGameplayAbility.h"
-
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "UCAbilitySystemStatics.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -15,6 +15,17 @@ UCGameplayAbility::UCGameplayAbility()
 {
 	ActivationBlockedTags.AddTag(UCAbilitySystemStatics::GetStunStatTag());
 }
+
+bool UCGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags,
+	const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	if (AbilitySpec && AbilitySpec->Level <= 0)
+		return false;
+
+	return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags);
+}
+
 class UAnimInstance* UCGameplayAbility::GetOwnerAnimInstance() const
 {
 	USkeletalMeshComponent* OwnerSkeletalMeshComp = GetOwningComponentFromActorInfo();

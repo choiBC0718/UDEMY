@@ -31,6 +31,13 @@ private:
 	FVector GetLookRightDir() const;
 	FVector GetLookFwdDir() const;
 	FVector GetMoveFwdDir() const;
+
+	/*******************************************************************/
+	/*						 Gameplay Ability		                   */
+	/*******************************************************************/
+private:
+	UPROPERTY()
+	class UCHeroAttributeSet* HeroAttributeSet;
 	
 	/*******************************************************************/
 	/*                              Input                              */
@@ -46,6 +53,9 @@ private:
 	class UInputAction* MoveInputAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* LearnAbilityLeaderAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<ECAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -56,7 +66,9 @@ private:
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, ECAbilityInputID InputID);
 	void SetInputEnabledFromPlayerController(bool bEnabled);
-	
+	void LearnAbilityLeaderDown(const FInputActionValue& InputActionValue);
+	void LearnAbilityLeaderUp(const FInputActionValue& InputActionValue);
+	bool bIsLearnAbilityLeaderDown = false;
 	/*******************************************************************/
 	/*					  			  Stun	                           */
 	/*******************************************************************/
@@ -84,4 +96,11 @@ private:
 	FTimerHandle CameraLerpTimerHandle;
 	void LerpCameraToLocalOffsetLocation(const FVector& Goal);
 	void TickCameraLocalOffsetLerp(FVector Goal);
+
+
+	/*******************************************************************/
+	/*					  InventoryComponent			               */
+	/*******************************************************************/
+private:
+	class UInventoryComponent* InventoryComponent;
 };

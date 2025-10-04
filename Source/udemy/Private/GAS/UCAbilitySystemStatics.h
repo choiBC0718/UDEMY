@@ -4,10 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbility.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "UCAbilitySystemStatics.generated.h"
 
 class UGameplayAbility;
+struct FGameplayAbilitySpec;
+class UAbilitySystemComponent;
 /**
  * 
  */
@@ -21,7 +24,24 @@ public:
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
 	static FGameplayTag GetAimStatTag();
+	static FGameplayTag GetHealthFullStatTag();
+	static FGameplayTag GetHealthEmptyStatTag();
+	static FGameplayTag GetManaFullStatTag();
+	static FGameplayTag GetManaEmptyStatTag();
+	static FGameplayTag GetHeroRoleTag();
+	
+	static FGameplayTag GetExperienceAttrTag();
+	static FGameplayTag GetGoldAttrTag();
+	
+	
+	static bool IsHero(const AActor* ActorToCheck);
+	static bool IsAbilityAtMaxLevel(const FGameplayAbilitySpec& Spec);
 
 	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
 	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
+
+	static bool CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC);
+	static float GetManaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
+	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
+	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 };

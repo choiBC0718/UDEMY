@@ -47,8 +47,7 @@ ACCharacter::ACCharacter()
 void ACCharacter::ServerSideInit()
 {
 	CAbilitySystemComponent -> InitAbilityActorInfo(this, this);
-	CAbilitySystemComponent -> ApplyInitialEffects();
-	CAbilitySystemComponent -> GiveInitialAbility();
+	CAbilitySystemComponent -> ServerSideInit();
 }
 void ACCharacter::ClientSideInit()
 {
@@ -60,7 +59,7 @@ bool ACCharacter::IsLocallyControlledByPlayer()
 	return GetController() && GetController() -> IsLocalPlayerController();
 }
 
-// AI 캐릭터에서 server 측에서 초기화
+
 void ACCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
@@ -115,6 +114,35 @@ bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& Ev
 	return true;
 }
 
+void ACCharacter::UpgradeAbilityWithInputID(ECAbilityInputID InputID)
+{
+	if (CAbilitySystemComponent)
+	{
+		CAbilitySystemComponent->Server_UpgradeAbilityWithInputID(InputID);
+	}
+}
+
+void ACCharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+}
+
+void ACCharacter::MaxHealthUpdated(const FOnAttributeChangeData& Data)
+{
+	if (IsValid(CAttributeSet))
+	{
+		CAttributeSet->RescaleHealth();
+	}
+}
+
+void ACCharacter::MaxManaUpdated(const FOnAttributeChangeData& Data)
+{
+	if (IsValid(CAttributeSet))
+	{
+		CAttributeSet->RescaleMana();
+	}
+}
+
 void ACCharacter::BindGASChangeDelegates()
 {
 	if (CAbilitySystemComponent)
@@ -122,6 +150,10 @@ void ACCharacter::BindGASChangeDelegates()
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &ACCharacter::DeathTagUpdated);
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &ACCharacter::StunTagUpdated);
 		CAbilitySystemComponent -> RegisterGameplayTagEvent(UCAbilitySystemStatics::GetAimStatTag()).AddUObject(this, &ACCharacter::AimTagUpdated);
+
+		CAbilitySystemComponent -> GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &ACCharacter::MoveSpeedUpdated);
+		CAbilitySystemComponent -> GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
+		CAbilitySystemComponent -> GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
 	}
 }
 

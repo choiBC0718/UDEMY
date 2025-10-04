@@ -22,8 +22,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Combo")
 	TMap<FName, FGenericDamageEffectDef> ComboDamageMap;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Targetting")
-	float TargetSweepSphereRadius = 120.f;
+	//UPROPERTY(EditDefaultsOnly, Category="Targetting")
+	//float TargetSweepSphereRadius = 120.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Launch")
 	TSubclassOf<UGameplayEffect> LaunchDamageEffect;

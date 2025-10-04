@@ -11,7 +11,9 @@
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubSystems.h"
 #include "EnhancedInputComponent.h"
+#include "GAS/CHeroAttributeSet.h"
 #include "GAS/UCAbilitySystemStatics.h"
+#include "Inventory/InventoryComponent.h"
 #include "udemy/udemy.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
@@ -34,6 +36,11 @@ ACPlayerCharacter::ACPlayerCharacter()
 	//키 입력에 따라 캐릭터의 방향 회전하도록 & 회전 속도
 	GetCharacterMovement() -> bOrientRotationToMovement = true;
 	GetCharacterMovement() -> RotationRate = FRotator(0.f,720.f,0.f);
+
+	// 플레이어 캐릭터는 기본 AttributeSet + HeroAttributeSet : 총 2개의 속성 세트 가짐
+	HeroAttributeSet = CreateDefaultSubobject<UCHeroAttributeSet>("Hero AttributeSet");
+
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("InventoryComponent");
 }
 
 void ACPlayerCharacter::PawnClientRestart()
@@ -61,6 +68,9 @@ void ACPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 		EnhancedInputComp -> BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &ACPlayerCharacter::Jump);
 		EnhancedInputComp -> BindAction(LookInputAction, ETriggerEvent::Triggered, this, &ACPlayerCharacter::HandleLookInput);
 		EnhancedInputComp -> BindAction(MoveInputAction, ETriggerEvent::Triggered, this, &ACPlayerCharacter::HandleMoveInput);
+		EnhancedInputComp -> BindAction(LearnAbilityLeaderAction, ETriggerEvent::Started, this, &ACPlayerCharacter::LearnAbilityLeaderDown);
+		EnhancedInputComp -> BindAction(LearnAbilityLeaderAction, ETriggerEvent::Completed, this, &ACPlayerCharacter::LearnAbilityLeaderUp);
+		
 
 		for (const TPair<ECAbilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
 		{
@@ -88,6 +98,13 @@ void ACPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValu
 void ACPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, ECAbilityInputID InputID)
 {
 	bool bPressed = InputActionValue.Get<bool>();
+
+	if (bPressed && bIsLearnAbilityLeaderDown)
+	{
+		UpgradeAbilityWithInputID(InputID);
+		return;
+	}
+	
 	if (bPressed)
 	{
 		GetAbilitySystemComponent() -> AbilityLocalInputPressed((int32)InputID);
@@ -116,6 +133,16 @@ void ACPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 	{
 		DisableInput(PlayerController);
 	}
+}
+
+void ACPlayerCharacter::LearnAbilityLeaderDown(const FInputActionValue& InputActionValue)
+{
+	bIsLearnAbilityLeaderDown = true;
+}
+
+void ACPlayerCharacter::LearnAbilityLeaderUp(const FInputActionValue& InputActionValue)
+{
+	bIsLearnAbilityLeaderDown = false;
 }
 
 void ACPlayerCharacter::OnStun()
@@ -158,13 +185,14 @@ FVector ACPlayerCharacter::GetMoveFwdDir() const
 /***	Camera	 ***/
 void ACPlayerCharacter::OnAimStateChanged(bool bIsAimming)
 {
-	LerpCameraToLocalOffsetLocation(bIsAimming ?  CameraAimLocalOffset : FVector{0.f});
+	if (IsLocallyControlledByPlayer())
+		LerpCameraToLocalOffsetLocation(bIsAimming ?  CameraAimLocalOffset : FVector{0.f});
 }
 
 void ACPlayerCharacter::LerpCameraToLocalOffsetLocation(const FVector& Goal)
 {
 	GetWorldTimerManager().ClearTimer(CameraLerpTimerHandle);
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
+	CameraLerpTimerHandle = GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
 }
 
 void ACPlayerCharacter::TickCameraLocalOffsetLerp(FVector Goal)
@@ -179,5 +207,5 @@ void ACPlayerCharacter::TickCameraLocalOffsetLerp(FVector Goal)
 	FVector NewLocalOffset = FMath::Lerp(CurrentLocalOffset, Goal, LerpAlpha);
 	ViewCam->SetRelativeLocation(NewLocalOffset);
 	
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
+	CameraLerpTimerHandle= GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ACPlayerCharacter::TickCameraLocalOffsetLerp, Goal));
 }

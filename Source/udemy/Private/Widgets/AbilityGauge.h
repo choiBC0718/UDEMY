@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/IUserObjectListEntry.h"
+#include "GameplayEffectTypes.h"
 #include "AbilityGauge.generated.h"
 
+class UAbilitySystemComponent;
+struct FGameplayAbilitySpec;
 
 USTRUCT(BlueprintType)
 struct FAbilityWidgetData : public FTableRowBase
@@ -72,4 +75,34 @@ private:
 
 	FTimerHandle CooldownTimerHandle;
 	FTimerHandle CooldownTimerUpdateHandle;
+
+	//**********************************************//
+	//			스킬 레벨에 따른 아이콘 변화			//
+	//**********************************************//
+private:
+	UPROPERTY(meta=(BindWidget))
+	class UImage* LevelGauge;
+
+	UPROPERTY(EditDefaultsOnly, Category="Visual")
+	FName UpgradeAvailableName = "upgradeAvailable";
+	UPROPERTY(EditDefaultsOnly, Category="Visual")
+	FName CanCastName = "CanCast";
+	UPROPERTY(EditDefaultsOnly, Category="Visual")
+	FName LevelName = "Level";	
+
+	bool bIsAbilityLearned = false;
+	
+	const UAbilitySystemComponent* OwnerAbilitySystemComponent;
+	const FGameplayAbilitySpec* CachedAbilitySpec;
+	const FGameplayAbilitySpec* GetAbilitySpec();
+
+	void AbilitySpecUpdated(const FGameplayAbilitySpec& AbilitySpec);
+	void UpgradePointUpdated(const FOnAttributeChangeData& Data);
+	void UpdateCanCast();
+
+	//***************************************************************//
+	//		Static에 실시간 데이터 받아오는 함수 이용하여 아이콘에 적용		//
+	//**************************************************************//
+private:
+	void ManaUpdated(const FOnAttributeChangeData& Data);
 };

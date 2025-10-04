@@ -18,26 +18,32 @@ class UCAbilitySystemComponent : public UAbilitySystemComponent
 
 public:
 	UCAbilitySystemComponent();
-	void ApplyInitialEffects();
-	void GiveInitialAbility();
+
+	void ServerSideInit();
+
 	void ApplyFullStatEffect();
+	void InitializeBaseAttribute();
 	const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	bool IsAtMaxLevel() const;
+
+	UFUNCTION(Server, Reliable , WithValidation)
+	void Server_UpgradeAbilityWithInputID(ECAbilityInputID InputID);
+	UFUNCTION(Client, Reliable)
+	void Client_AbilitySpecLevelUpdated(FGameplayAbilitySpecHandle Handle, int NewLevel);
 	
 private:
+	void ApplyInitialEffects();
+	void GiveInitialAbility();
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
+	void ManaUpdated(const FOnAttributeChangeData& ChangeData);
+	void ExperienceUpdated(const FOnAttributeChangeData& ChangeData);
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TSubclassOf<UGameplayEffect> FullStatEffect;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TSubclassOf<UGameplayEffect> DeathEffect;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TArray<TSubclassOf<UGameplayEffect>> InitialEffects;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
+	class UPA_AbilitySystemGenerics* AbilitySystemGenerics;
+	
 };

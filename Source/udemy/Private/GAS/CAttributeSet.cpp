@@ -23,6 +23,21 @@ void UCAttributeSet::OnRep_MaxMana(const FGameplayAttributeData& OldValue)
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UCAttributeSet, MaxMana, OldValue); 
 }
 
+void UCAttributeSet::OnRep_AttackDamage(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UCAttributeSet, AttackDamage, OldValue); 
+}
+
+void UCAttributeSet::OnRep_Armor(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UCAttributeSet, Armor, OldValue); 
+}
+
+void UCAttributeSet::OnRep_MoveSpeed(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UCAttributeSet, MoveSpeed, OldValue); 
+}
+
 //서버에서 클라이언트로 값 복제를 위해 필요한 함수 -> 복제 동작 정의
 void UCAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -32,8 +47,12 @@ void UCAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, Mana, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, MaxMana, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, AttackDamage, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, Armor, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UCAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 }
 
+// 최소 HP, MP 0 설정
 void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
 	Super::PreAttributeChange(Attribute, NewValue);
@@ -54,10 +73,34 @@ void UCAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCa
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
 		SetHealth(FMath::Clamp(GetHealth(),0, GetMaxHealth()));
+		SetCachedHealthPercent(GetHealth() / GetMaxHealth());
 	}
 	if (Data.EvaluatedData.Attribute == GetManaAttribute())
 	{
 		SetMana(FMath::Clamp(GetMana(),0, GetMaxMana()));
+		SetCachedManaPercent(GetMana() / GetMaxMana());
+	}
+}
+
+void UCAttributeSet::RescaleHealth()
+{
+	if (!GetOwningActor()->HasAuthority())
+		return;
+
+	if (GetCachedHealthPercent() !=0 && GetHealth() != 0)
+	{
+		SetHealth(GetMaxHealth() * GetCachedHealthPercent());
+	}
+}
+
+void UCAttributeSet::RescaleMana()
+{
+	if (!GetOwningActor()->HasAuthority())
+		return;
+
+	if (GetCachedManaPercent() !=0 && GetMana() != 0)
+	{
+		SetMana(GetMaxMana() * GetCachedManaPercent());
 	}
 }
 
