@@ -1,0 +1,45 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Widgets/SplineWidget.h"
+
+int32 USplineWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
+	const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
+	const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	LayerId = Super::NativePaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	FVector2D StartPos = TestStartPos;
+	FVector2D EndPos = TestEndPos;
+
+	if (StartWidget && EndWidget)
+	{
+		StartPos = StartWidget->GetCachedGeometry().GetLocalPositionAtCoordinates(StartPortLocalCoord);
+		EndPos = EndWidget->GetCachedGeometry().GetLocalPositionAtCoordinates(EndPortLocalCoord);
+	}
+	FSlateDrawElement::MakeSpline(
+		OutDrawElements,++LayerId, AllottedGeometry.ToPaintGeometry(),
+		StartPos, StartPortDirection,EndPos, EndPortDirection,
+		Thickness, ESlateDrawEffect::None, Color);
+	return LayerId;
+}
+
+void USplineWidget::SetupSpline(const UUserWidget* InStartWidget, const UUserWidget* InEndWidget,
+                                const FVector2D& InStartPortLocalCoord, const FVector2D& InEndPortLocalCoord, const FVector2D& InStartPortDir,
+                                const FVector2D& InEndPortDir)
+{
+	StartWidget = InStartWidget;
+	EndWidget = InEndWidget;
+	StartPortLocalCoord = InStartPortLocalCoord;
+	EndPortLocalCoord = InEndPortLocalCoord;
+	StartPortDirection = InStartPortDir;
+	EndPortDirection = InEndPortDir;
+
+	
+}
+
+void USplineWidget::SetSplineStyle(const FLinearColor& InColor, float InThickness)
+{
+	Color = InColor;
+	Thickness = InThickness;
+}

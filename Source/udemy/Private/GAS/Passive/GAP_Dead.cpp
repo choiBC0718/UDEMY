@@ -44,18 +44,21 @@ void UGAP_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		{
 			RewardTargets.Add(Killer);
 		}
-
 		bool bFound = false;
 		float SelfExperience = GetAbilitySystemComponentFromActorInfo_Ensured()->GetGameplayAttributeValue(UCHeroAttributeSet::GetExperienceAttribute(),bFound);
+		
+
+		
 		//적 처치 시 받을 총 보상 (팀원들에게 분배 될 Killer + RewardTargets)
 		float TotalExperienceReward = BaseExperienceReward + ExperienceRewardPerExperience * SelfExperience;
 		float TotalGoldReward = BaseGoldReward + GoldRewardPerExperience * SelfExperience;
 
+		
 		if (Killer)
 		{	//킬러가 있다면 킬러의 보상 먼저 처리
 			float KillerExperienceReward = TotalExperienceReward * KillerRewardPortion;
 			float KillerGoldReward = TotalGoldReward * KillerRewardPortion;
-
+		
 			FGameplayEffectSpecHandle EffectSpec = MakeOutgoingGameplayEffectSpec(RewardEffect);
 			EffectSpec.Data -> SetSetByCallerMagnitude(UCAbilitySystemStatics::GetExperienceAttrTag(), KillerExperienceReward);
 			EffectSpec.Data -> SetSetByCallerMagnitude(UCAbilitySystemStatics::GetGoldAttrTag(), KillerGoldReward);
@@ -65,10 +68,13 @@ void UGAP_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 			//킬러의 보상값 제외한 나머지
 			TotalExperienceReward -= KillerExperienceReward;
 			TotalGoldReward -= KillerGoldReward;
+			
 		}
+		
+		
 		float ExperiencePerTarget = TotalExperienceReward / RewardTargets.Num();
 		float GoldPerTarget = TotalGoldReward / RewardTargets.Num();
-
+		
 		FGameplayEffectSpecHandle EffectSpec = MakeOutgoingGameplayEffectSpec(RewardEffect);
 		EffectSpec.Data -> SetSetByCallerMagnitude(UCAbilitySystemStatics::GetExperienceAttrTag(), ExperiencePerTarget);
 		EffectSpec.Data -> SetSetByCallerMagnitude(UCAbilitySystemStatics::GetGoldAttrTag(), GoldPerTarget);

@@ -43,8 +43,15 @@ private:
 
 	UPROPERTY(meta=(BindWidget))
 	class UShopWidget* ShopWidget;
-	UPROPERTY(Transient,meta=(BindWidgetAnim))
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
 	class UWidgetAnimation* ShopPopupAnim;
+	
+	UPROPERTY(meta=(BindWidget))
+	class UInventoryWidget* InventoryWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	class USkeletalMeshRenderWidget* HeadShotWidget;
+	
 	
 	void PlayShopPopupAnim(bool bPlayForward);
 	void SetOwningPawnInputEnabled(bool bPawnInputEnabled);

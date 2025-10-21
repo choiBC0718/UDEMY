@@ -24,9 +24,13 @@ public:
 private:
 	UPROPERTY(meta = (BindWidget))
 	UTileView* ShopItemList;
+	
+	UPROPERTY(meta=(BindWidget))
+	class UItemTreeWidget* CombinationTree;
 
 	void LoadShopItems();
 	void ShopItemLoadFinished();
+	void ShowItemCombination(const UShopItemWidget* ItemWidget);
 	void ShopItemWidgetGenerated(UUserWidget& NewWidget);
 
 	UPROPERTY()

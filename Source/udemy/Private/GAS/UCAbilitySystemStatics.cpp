@@ -122,6 +122,17 @@ bool UCAbilitySystemStatics::CheckAbilityCost(const FGameplayAbilitySpec& Abilit
 	}
 	return false;
 }
+
+bool UCAbilitySystemStatics::CheckAbilityCostStatic(const UGameplayAbility* AbilityCDO,
+	const UAbilitySystemComponent& ASC)
+{
+	if (AbilityCDO)
+	{
+		return AbilityCDO->CheckCost(FGameplayAbilitySpecHandle(), ASC.AbilityActorInfo.Get());
+	}
+	return false;
+}
+
 //스킬에 사용되는 마나 값 가져오기
 float UCAbilitySystemStatics::GetManaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel)
 {
