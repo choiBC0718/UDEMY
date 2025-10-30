@@ -29,9 +29,17 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	virtual void SetupInputComponent() override;
-	
+	void MatchFinished(AActor* ViewTarget, int WiningTeam);
+	void ShowWinLoseState();
+
 private:
+	UFUNCTION(Client, Reliable)
+	void Client_MatchFinished(AActor* ViewTarget, int WiningTeam);
 	void SpawnGameplayWidget();
+
+	UPROPERTY(EditDefaultsOnly, Category = "View")
+	float MatchFinishViewBlendTimeDuration = 3.f;
+
 	
 	UPROPERTY()
 	class ACPlayerCharacter* CPlayerCharacter;
@@ -46,8 +54,13 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	class UInputAction* ShopToggleInputAction;
 
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	class UInputAction* ToggleGameplayMenuAction;
+
 	UFUNCTION()
 	void ToggleShop();
+	UFUNCTION()
+	void ToggleGameplayMenu();
 	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;

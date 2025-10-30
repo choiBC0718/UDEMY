@@ -81,7 +81,8 @@ void ATargetActor_GroundPick::ConfirmTargetingAndContinue()
 	}
 
 	// 타게팅 대상의 배열 데이터
-	FGameplayAbilityTargetDataHandle TargetData =UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TargetActors.Array(), false);
+	FGameplayAbilityTargetDataHandle TargetData =UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(
+		TargetActors.Array(), false);
 
 	// 타겟 히트 위치 저장 데이터 (시전한 위치에 화염 지대 설정하도록)
 	FGameplayAbilityTargetData_SingleTargetHit* HitLoc = new FGameplayAbilityTargetData_SingleTargetHit;
@@ -106,7 +107,8 @@ FVector ATargetActor_GroundPick::GetTargetPoint() const
 	//캐스팅 시 올려다 봤을 때 -> 하늘에는 Trace Channel 없기에 트레이스 못그림
 	if (!HitResult.bBlockingHit)
 	{	//아무것도 트레이스 하지 않는다면, 아래쪽으로 쭉 내림
-		GetWorld()->LineTraceSingleByChannel(HitResult, ViewLoc, TraceEnd+FVector::DownVector * TNumericLimits<float>::Max(), ECC_Target);
+		GetWorld()->LineTraceSingleByChannel(
+			HitResult, ViewLoc, TraceEnd+FVector::DownVector * TNumericLimits<float>::Max(), ECC_Target);
 	}
 	if (!HitResult.bBlockingHit)
 	{

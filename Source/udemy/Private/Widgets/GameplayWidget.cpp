@@ -4,6 +4,9 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayMenu.h"
+#include "Components/WidgetSwitcher.h"
+#include "Components/CanvasPanel.h"
 #include "ShopWidget.h"
 #include "Widgets/ValueGauge.h"
 #include "Widgets/AbilityListView.h"
@@ -20,6 +23,13 @@ void UGameplayWidget::NativeConstruct()
 	{
 		HealthBar -> SetAndBoundToGameplayAttribute(OwnerAbilitySystemComp, UCAttributeSet::GetHealthAttribute(), UCAttributeSet::GetMaxHealthAttribute());
 		ManaBar -> SetAndBoundToGameplayAttribute(OwnerAbilitySystemComp, UCAttributeSet::GetManaAttribute(), UCAttributeSet::GetMaxManaAttribute());
+	}
+
+	SetShowMouseCursor(false);
+	SetFocusToGameOnly();
+	if (GameplayMenu)
+	{
+		GameplayMenu->GetResumeButtonClickedEventDelegate().AddDynamic(this, &UGameplayWidget::ToggleGameplayMenu);
 	}
 }
 
@@ -47,6 +57,34 @@ void UGameplayWidget::ToggleShop()
 		SetShowMouseCursor(false);
 		SetFocusToGameOnly();
 	}
+}
+
+void UGameplayWidget::ToggleGameplayMenu()
+{
+	if (MainSwitcher->GetActiveWidget() == GameplayMenuRootPanel)
+	{
+		MainSwitcher->SetActiveWidget(GameplayWidgetRootPanel);
+		SetOwningPawnInputEnabled(true);
+		SetShowMouseCursor(false);
+		SetFocusToGameOnly();
+	}
+	else
+	{
+		SHowGameplayMenu();
+	}
+}
+
+void UGameplayWidget::SHowGameplayMenu()
+{
+	MainSwitcher->SetActiveWidget(GameplayMenuRootPanel);
+	SetOwningPawnInputEnabled(false);
+	SetShowMouseCursor(true);
+	SetFocusToGameAndUI();
+}
+
+void UGameplayWidget::SetGameplayMenuTitle(const FString& NewTitle)
+{
+	GameplayMenu->SetTitleText(NewTitle);
 }
 
 
