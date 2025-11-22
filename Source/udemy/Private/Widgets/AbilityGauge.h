@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/IUserObjectListEntry.h"
 #include "GameplayEffectTypes.h"
@@ -93,7 +94,7 @@ private:
 	bool bIsAbilityLearned = false;
 	
 	const UAbilitySystemComponent* OwnerAbilitySystemComponent;
-	const FGameplayAbilitySpec* CachedAbilitySpec;
+	FGameplayAbilitySpecHandle CachedAbilitySpecHandle;
 	const FGameplayAbilitySpec* GetAbilitySpec();
 
 	void AbilitySpecUpdated(const FGameplayAbilitySpec& AbilitySpec);

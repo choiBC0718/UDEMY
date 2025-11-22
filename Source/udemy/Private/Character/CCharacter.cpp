@@ -69,6 +69,16 @@ void ACCharacter::PossessedBy(AController* NewController)
 	}
 }
 
+FVector ACCharacter::GetCaptureLocalPosition() const
+{
+	return HeadShotCaptureLocalPosition;
+}
+
+FRotator ACCharacter::GetCaptureLocalRotation() const
+{
+	return HeadShotCaptureLocalRotation;
+}
+
 const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& ACCharacter::GetAbilities() const
 {
 	return CAbilitySystemComponent -> GetAbilities();

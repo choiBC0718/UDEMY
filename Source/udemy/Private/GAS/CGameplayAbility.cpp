@@ -26,6 +26,43 @@ bool UCGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Hand
 	return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags);
 }
 
+AActor* UCGameplayAbility::GetAimTarget(float AimDistance, ETeamAttitude::Type TeamAttitude) const
+{
+	AActor* OwnerAvatarActor = GetAvatarActorFromActorInfo();
+	if (OwnerAvatarActor)
+	{
+		FVector Loc;
+		FRotator Rot;
+		OwnerAvatarActor->GetActorEyesViewPoint(Loc,Rot);
+
+		FVector AimEnd = Loc + Rot.Vector() * AimDistance;
+
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(OwnerAvatarActor);
+
+		FCollisionObjectQueryParams ObjParams;
+		ObjParams.AddObjectTypesToQuery(ECC_Pawn);
+
+
+		if (ShouldDrawDebug())
+		{
+			DrawDebugLine(GetWorld(), Loc, AimEnd, FColor::Red, false, 2.f,0U, 3.f);
+		}
+		TArray<FHitResult> HitResults;
+		if (GetWorld()->LineTraceMultiByObjectType(HitResults, Loc, AimEnd, ObjParams, Params))
+		{
+			for (FHitResult& HitResult : HitResults)
+			{
+				if (IsActorTeamAttitudeIs(HitResult.GetActor(), TeamAttitude))
+				{
+					return HitResult.GetActor();
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+
 class UAnimInstance* UCGameplayAbility::GetOwnerAnimInstance() const
 {
 	USkeletalMeshComponent* OwnerSkeletalMeshComp = GetOwningComponentFromActorInfo();
@@ -121,6 +158,7 @@ void UCGameplayAbility::PushTargets(const FGameplayAbilityTargetDataHandle& Targ
 	PushTargets(Targets, PushVel);
 }
 
+
 ACharacter* UCGameplayAbility::GetOwningAvatarCharacter()
 {
 	if (!AvatarCharacter)
@@ -128,6 +166,56 @@ ACharacter* UCGameplayAbility::GetOwningAvatarCharacter()
 		AvatarCharacter = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	}
 	return AvatarCharacter;
+}
+
+void UCGameplayAbility::SendLocalGameplayEvent(const FGameplayTag& EventTag, const FGameplayEventData& EventData)
+{
+	UAbilitySystemComponent* OwnerASC = GetAbilitySystemComponentFromActorInfo();
+	if (OwnerASC)
+	{
+		OwnerASC->HandleGameplayEvent(EventTag, &EventData);
+	}
+}
+
+void UCGameplayAbility::PlayMontageLocally(UAnimMontage* Montage)
+{
+	UAnimInstance* OnwerAnimInst = GetOwnerAnimInstance();
+	if (OnwerAnimInst && !OnwerAnimInst->Montage_IsPlaying(Montage))
+	{
+		OnwerAnimInst->Montage_Play(Montage);
+	}
+}
+void UCGameplayAbility::StopMontageAfterCurrentSection(UAnimMontage* Montage)
+{
+	UAnimInstance* OnwerAnimInst = GetOwnerAnimInstance();
+	if (OnwerAnimInst)
+	{
+		FName CurrentSectionName = OnwerAnimInst->Montage_GetCurrentSection(Montage);
+		OnwerAnimInst->Montage_SetNextSection(CurrentSectionName, NAME_None, Montage);
+	}
+}
+
+FGenericTeamId UCGameplayAbility::GetOwnerTeamId() const
+{
+	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
+	if (OwnerTeamInterface)
+	{
+		return OwnerTeamInterface->GetGenericTeamId();
+	}
+	return FGenericTeamId::NoTeam;
+}
+
+bool UCGameplayAbility::IsActorTeamAttitudeIs(const AActor* OtherActor, ETeamAttitude::Type TeamAttitude) const
+{
+	if (!OtherActor)
+		return false;
+	
+	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
+	if (OwnerTeamInterface)
+	{
+		return OwnerTeamInterface->GetTeamAttitudeTowards(*OtherActor) == TeamAttitude;
+	}
+	return false;
 }
 
 void UCGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult,

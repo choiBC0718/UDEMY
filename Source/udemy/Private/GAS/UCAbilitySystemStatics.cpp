@@ -29,6 +29,11 @@ FGameplayTag UCAbilitySystemStatics::GetAimStatTag()
 	return FGameplayTag::RequestGameplayTag("stats.aim");
 }
 
+FGameplayTag UCAbilitySystemStatics::GetCrosshairTag()
+{
+	return FGameplayTag::RequestGameplayTag("stats.crosshair");
+}
+
 FGameplayTag UCAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("stats.health.full");
@@ -64,7 +69,17 @@ FGameplayTag UCAbilitySystemStatics::GetGoldAttrTag()
 	return FGameplayTag::RequestGameplayTag("attr.gold");
 }
 
+FGameplayTag UCAbilitySystemStatics::GetTargetUpdatedTag()
+{
+	return FGameplayTag::RequestGameplayTag("target.updated");
+}
+
 bool UCAbilitySystemStatics::IsHero(const AActor* ActorToCheck)
+{
+	return ActorHasTag(ActorToCheck,GetHeroRoleTag());
+}
+
+bool UCAbilitySystemStatics::ActorHasTag(const AActor* ActorToCheck, const FGameplayTag& Tag)
 {
 	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);
 	if (ActorISA)
@@ -72,10 +87,15 @@ bool UCAbilitySystemStatics::IsHero(const AActor* ActorToCheck)
 		UAbilitySystemComponent* ActorASC = ActorISA->GetAbilitySystemComponent();
 		if (ActorASC)
 		{
-			return ActorASC->HasMatchingGameplayTag(GetHeroRoleTag());
+			return ActorASC->HasMatchingGameplayTag(Tag);
 		}
 	}
 	return false;
+}
+
+bool UCAbilitySystemStatics::IsActorDead(const AActor* ActorToCheck)
+{
+	return ActorHasTag(ActorToCheck,GetDeadStatTag());
 }
 
 bool UCAbilitySystemStatics::IsAbilityAtMaxLevel(const FGameplayAbilitySpec& Spec)
@@ -87,6 +107,11 @@ FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputPressedTag()
 {
 	return FGameplayTag::RequestGameplayTag("ability.basicattack.pressed");
 	
+}
+
+FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputReleasedTag()
+{
+	return FGameplayTag::RequestGameplayTag("ability.basicattack.released");
 }
 
 float UCAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)

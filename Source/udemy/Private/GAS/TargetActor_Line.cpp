@@ -1,0 +1,162 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "GAS/TargetActor_Line.h"
+#include "udemy/udemy.h"
+#include "Components/SphereComponent.h"
+#include "Components/SceneComponent.h"
+#include "NiagaraComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Abilities/GameplayAbility.h"
+#include "Kismet/KismetMathLibrary.h"
+
+ATargetActor_Line::ATargetActor_Line()
+{
+	RootComp=CreateDefaultSubobject<USceneComponent>("Root");
+	SetRootComponent(RootComp);
+
+	TargetEndDetectionSphere=CreateDefaultSubobject<USphereComponent>("TargetEndDetectionSphere");
+	TargetEndDetectionSphere->SetupAttachment(GetRootComponent());
+	TargetEndDetectionSphere->SetCollisionResponseToChannel(ECC_SpringArm, ECR_Ignore);
+	
+	LaserVFX=CreateDefaultSubobject<UNiagaraComponent>("LaserVFX");
+	LaserVFX->SetupAttachment(GetRootComponent());
+
+	PrimaryActorTick.bCanEverTick = true;
+	bReplicates=true;
+	ShouldProduceTargetDataOnServer=true;
+	AvatarActor=nullptr;
+}
+
+void ATargetActor_Line::ConfigureTargetSetting(float NewTargetRange, float NewDetectionRadius,
+	float NewTargetingInterval, FGenericTeamId OwnerTeamId, bool bShouldDrawDebug)
+{
+	TargetRange=NewTargetRange;
+	DetectionRadius=NewDetectionRadius;
+	TargetingInterval=NewTargetingInterval;
+	SetGenericTeamId(OwnerTeamId);
+	bDrawDebug=bShouldDrawDebug;
+}
+
+void ATargetActor_Line::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamId=NewTeamID;
+}
+
+void ATargetActor_Line::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ATargetActor_Line, TeamId);
+	DOREPLIFETIME(ATargetActor_Line, TargetRange);
+	DOREPLIFETIME(ATargetActor_Line, DetectionRadius);
+	DOREPLIFETIME(ATargetActor_Line, AvatarActor);
+}
+
+void ATargetActor_Line::StartTargeting(UGameplayAbility* Ability)
+{
+	Super::StartTargeting(Ability);
+	if (!OwningAbility)
+		return;
+
+	AvatarActor = OwningAbility->GetAvatarActorFromActorInfo();
+	if (HasAuthority())
+	{
+		GetWorldTimerManager().SetTimer(PeoridicalTargetingTimerHandle, this, &ATargetActor_Line::DoTargetCheckAndReport, TargetingInterval, true);
+	}
+}
+
+void ATargetActor_Line::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	UpdateTargetTrace();
+}
+
+void ATargetActor_Line::BeginDestroy()
+{
+	if (GetWorld() && PeoridicalTargetingTimerHandle.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(PeoridicalTargetingTimerHandle);
+	}
+	Super::BeginDestroy();
+}
+
+void ATargetActor_Line::DoTargetCheckAndReport()
+{
+	if (!HasAuthority())
+		return;
+
+	TSet<AActor*> OverlappingActorSet;
+	TargetEndDetectionSphere->GetOverlappingActors(OverlappingActorSet);
+
+	TArray<TWeakObjectPtr<AActor>> OverlappingActors;
+	for (AActor* OverlappingActor : OverlappingActorSet)
+	{
+		if (ShouldReportActorAsTarget(OverlappingActor))
+		{
+			OverlappingActors.Add(OverlappingActor);
+		}
+	}
+	FGameplayAbilityTargetDataHandle DataHandle;
+	FGameplayAbilityTargetData_ActorArray* ActorArray = new FGameplayAbilityTargetData_ActorArray();
+	ActorArray->SetActors(OverlappingActors);
+	DataHandle.Add(ActorArray);
+	
+	TargetDataReadyDelegate.Broadcast(DataHandle);
+}
+
+void ATargetActor_Line::UpdateTargetTrace()
+{
+	FVector ViewLocation = GetActorLocation();
+	FRotator ViewRotation = GetActorRotation();
+	if (AvatarActor)
+	{
+		AvatarActor->GetActorEyesViewPoint(ViewLocation, ViewRotation);
+	}
+
+	FVector LookEndPoint = ViewLocation + ViewRotation.Vector() * 100000;
+	FRotator LookRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), LookEndPoint);
+	SetActorRotation(LookRotation);
+
+	FVector SweepEndLocation = GetActorLocation() + LookRotation.Vector() * TargetRange;
+
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(AvatarActor);
+	QueryParams.AddIgnoredActor(this);
+	FCollisionResponseParams CollisionResponseParams(ECR_Overlap);
+	GetWorld()->SweepMultiByChannel(
+		HitResults,GetActorLocation(),SweepEndLocation,
+		FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(DetectionRadius),QueryParams,CollisionResponseParams);
+
+	FVector LineEndLocation = SweepEndLocation;
+	float LineLength = TargetRange;
+	for (FHitResult& Result : HitResults)
+	{
+		if (Result.GetActor())
+		{
+			if (GetTeamAttitudeTowards(*Result.GetActor()) != ETeamAttitude::Friendly)
+			{
+				LineEndLocation = Result.ImpactPoint;
+				LineLength = FVector::Distance(GetActorLocation(), LineEndLocation);
+				break;
+			}
+		}
+	}
+	TargetEndDetectionSphere->SetWorldLocation(LineEndLocation);
+	if (LaserVFX)
+	{
+		LaserVFX->SetVariableFloat(LaserFXLengthParamName, LineLength/100.f);
+	}
+}
+
+bool ATargetActor_Line::ShouldReportActorAsTarget(const AActor* ActorToCheck) const
+{
+	if (!ActorToCheck)
+		return false;
+	if (ActorToCheck == AvatarActor || ActorToCheck==this)
+		return false;
+	if (GetTeamAttitudeTowards(*ActorToCheck) != ETeamAttitude::Hostile)
+		return false;
+
+	return true;
+}

@@ -8,11 +8,12 @@
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "Widgets/RenderActorTargetInterface.h"
 #include "GAS/CGameplayAbilityTypes.h"
 #include "CCharacter.generated.h"
 
 UCLASS()
-class ACCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
+class ACCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface, public IRenderActorTargetInterface
 {
 	GENERATED_BODY()
 
@@ -25,6 +26,14 @@ public:
 	bool IsLocallyControlledByPlayer();
 	virtual void PossessedBy(AController* NewController) override;
 	const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
+	virtual FVector GetCaptureLocalPosition() const override;
+	virtual FRotator GetCaptureLocalRotation() const override;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Caputre")
+	FVector HeadShotCaptureLocalPosition;
+	UPROPERTY(EditDefaultsOnly, Category="Caputre")
+	FRotator HeadShotCaptureLocalRotation;
 	
 protected:
 	// Called when the game starts or when spawned

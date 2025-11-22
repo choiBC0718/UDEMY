@@ -71,6 +71,9 @@ private:
 	UPROPERTY(meta=(BindWidget))
 	class UCanvasPanel* GameplayMenuRootPanel;
 	
+	UPROPERTY(meta=(BindWidget))
+	class UCrosshairWidget* CrosshairWidget;
+	
 	void PlayShopPopupAnim(bool bPlayForward);
 	void SetOwningPawnInputEnabled(bool bPawnInputEnabled);
 	void SetShowMouseCursor(bool bShow);
